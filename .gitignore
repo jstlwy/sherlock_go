@@ -1,0 +1,16 @@
+# Output files, except requirements.txt
+*.txt
+!requirements.txt
+!LICENSE.txt
+
+# Comma-Separated Values (CSV) Reports
+*.csv
+
+# MacOS Folder Metadata File
+.DS_Store
+
+# Vim swap files
+*.swp
+
+# Main executable
+sherlock
