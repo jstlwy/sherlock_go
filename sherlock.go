@@ -303,7 +303,7 @@ func getCurrentSherlockVersion() string {
 	
 	// Download the latest version from GitHub
 	// and extract its version string
-	resp, err := http.Get("https://raw.githubusercontent.com/sherlock-project/sherlock/master/sherlock/sherlock.py")
+	resp, err := http.Get("https://raw.githubusercontent.com/jstlwy/sherlock_go/master/sherlock.go")
 	defer resp.Body.Close()
 	if err != nil {
 		fmt.Printf("Error when making HTTP request: %v\n", err)
@@ -312,10 +312,7 @@ func getCurrentSherlockVersion() string {
 		if scanErr := scanner.Err(); scanErr != nil {
 			fmt.Printf("Error when scanning HTTP response body: %v\n", scanErr)
 		} else {
-			// Regexp for Golang version:
-			//re := regexp.MustCompile(`const version string = "(\d+\.\d+\.\d+)"`)
-			// Regex for Python version:
-			re := regexp.MustCompile(`__version__ = "(\d+\.\d+\.\d+)"`)
+			re := regexp.MustCompile(`const version string = "(\d+\.\d+\.\d+)"`)
 			for scanner.Scan() {
 				currentLine := scanner.Text()
 				matches := re.FindStringSubmatch(currentLine)
