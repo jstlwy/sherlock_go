@@ -43,7 +43,7 @@ Usage of ./sherlock:
   -uniquetor
     	Make requests over Tor with new Tor circuit after each request. Increases runtime. Requires Tor to be installed and in system path.
   -username string
-    	The username(s) to search for on each social network.To specify multiple usernames, separate each with a comma.
+    	The username(s) to search for on each social network. To specify multiple usernames, separate each with a comma.
   -verbose
     	Display extra debugging information and metrics.
   -version
@@ -68,10 +68,10 @@ Please be aware that this program is far from perfect.
 I only made it because I wanted to get more practice with programming in Go, 
 but I don't have any ideas of my own.
 
-- Connections over Tor and color output are not yet supported
+- Connections over Tor not yet supported
+- Color output not yet implemented
 - As the number of goroutines, which is controlled by the `-connections` flag, increases, so will the number of false negatives
 - Go's `regexp` package does not support negative lookahead
-- I have not yet implemented the handling of variables in POST requests
 
 ## License
 

@@ -1,9 +1,4 @@
-/*
-Sherlock: Find Usernames Across Social Networks 
-
-This module contains the main logic for
-searching for usernames on social networks.
-*/
+// Sherlock: Find Usernames Across Social Networks 
 
 package main
 
@@ -26,7 +21,7 @@ const moduleName string = "Sherlock: Find Usernames Across Social Networks"
 const version string = "0.14.0"
 
 type probeBody struct {
-	perationName string `json:"operationName"`
+	OperationName string `json:"operationName"`
 	Query         string `json:"query"`
 	Username      string `json:"string"`
 	Variables     map[string]string `json:"variables"`
@@ -51,7 +46,6 @@ type siteSearchResults struct {
 	CheckedURL     string
 	UsernameStatus string
 	ResponseTime   float64
-	MiscInfo       string
 }
 
 // Concurrency management
@@ -69,9 +63,9 @@ func addToSherlockResults(sr siteSearchResults) {
 func sherlock(username string, 
               allSiteData map[string]siteRecord,
               useUniqueTor bool,
-			  timeout float64,
-			  printAll bool,
-		      verbose bool) {
+              timeout float64,
+              printAll bool,
+              verbose bool) {
 	// Checks for existence of username on various social media sites.
 	// 
 	// Arguments:
@@ -120,7 +114,6 @@ func probeSite(username string, site string, siteInfo siteRecord,
 			siteResults.CheckedURL = ""
 			siteResults.UsernameStatus = "Illegal"
 			siteResults.ResponseTime = -1.0
-			siteResults.MiscInfo = ""
 			addToSherlockResults(siteResults)
 			return
 		}
@@ -138,7 +131,7 @@ func probeSite(username string, site string, siteInfo siteRecord,
 	// Determine which URL to probe
 	var checkURL string
 	if len(siteInfo.ProbeURL) > 0 {
-		// There is a special URL to probe in order to find user
+		// There is a special URL to check in order to find users
 		// that is different from the normal user profile URL.
 		checkURL = strings.Replace(siteInfo.ProbeURL, "{}", username, -1)
 	} else {
@@ -146,16 +139,22 @@ func probeSite(username string, site string, siteInfo siteRecord,
 	}
 	siteResults.CheckedURL = checkURL
 	
-	/*
-	requestBody := io.NopCloser(nil)
-	if len(siteInfo.ProbeBody.Query) > 0 {
-		// TODO: Properly handle query variable substitutions
-		//requestBodyStr := strings.Replace(siteInfo.ProbeBody.Query, "{}", username, -1)
-		//requestBody = io.NopCloser(strings.NewReader(requestBodyStr))
+	var requestBody io.Reader = nil
+	if len(siteInfo.ProbeBody.Query) > 0 && len(siteInfo.ProbeBody.Variables) > 0 {
+		// Substitute for variables in the query embedded in the request body
+		query := siteInfo.ProbeBody.Query
+		for variable, _ := range siteInfo.ProbeBody.Variables {
+			originalStr := "(" + variable + ":"
+			replaceStr := "(" + username + ":"
+			query = strings.Replace(query, originalStr, replaceStr, 1)
+		}
+		if verbose {
+			fmt.Printf("[$] Query for %s: %s\n", site, query)
+		}
+		requestBody = strings.NewReader(query)
 	}
-	*/
 	
-	req, err := http.NewRequest(requestMethod, checkURL, nil)
+	req, err := http.NewRequest(requestMethod, checkURL, requestBody)
 	if err != nil {
 		if verbose {
 			fmt.Printf("[!] %s: Error when creating new HTTP request: %v\n", site, err)
@@ -337,7 +336,7 @@ func main() {
 	verbose        := flag.Bool("verbose", false, "Display extra debugging information and metrics.")
 	//noColor        := flag.Bool("no-color", false, "Don't add color to the terminal output.")
 	usernameArg    := flag.String("username", "",
-		"The username(s) to search for on each social network." + 
+		"The username(s) to search for on each social network. " + 
 		"To specify multiple usernames, separate each with a comma.")
 	jsonFilePath   := flag.String("json", "",
 		"User-specified JSON file from which to load site data.")
@@ -345,7 +344,7 @@ func main() {
 		"The directory to which to save the results for multiple usernames.")
 	outputFile     := flag.String("outfile", "",
 		"The file to which to save the results for a single username.")
-	numConnections := flag.Int("connections", 5,
+	numConnections := flag.Int("connections", 10,
 		"The max number of concurrent connections to allow.")
 	timeout        := flag.Float64("timeout", 0.0,
 		"Time (in seconds) to wait for responses to requests. " +
@@ -365,7 +364,8 @@ func main() {
 		"Output all results, including those where the username was not found.")
 	siteList       := flag.String("site", "",
 		"Limit analysis to just the listed sites. " +
-		"Add multiple options to specify more than one site.")
+		"Must be the site name as shown in the JSON list, not a URL. " +
+		"Separate multiple sites with commas.")
 	flag.Parse()
 
 	if *displayVersion {
@@ -394,7 +394,7 @@ func main() {
 		os.Exit(1)
 	}
 	
-	// TODO: Regex check on proxy
+	// TODO: Validate proxy address
 	if len(*proxy) > 0 {
 		fmt.Printf("Using proxy: %s\n" + *proxy)
 		os.Setenv("HTTP_PROXY", *proxy)
@@ -461,14 +461,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Check if user provided list of sites to check.
+	// Check if user specified which sites to check.
 	// If so, remove all others from the allSiteData map.
 	if len(*siteList) > 0 {
-		sitesToCheck := strings.Split(*siteList, ",")
-		for _, site := range sitesToCheck {
-			if len(site) > 0 {
-				// TODO
+		userSpecifiedSites := strings.Split(*siteList, ",")
+		userSpecifiedSiteData := make(map[string]siteRecord)
+		for _, userSite := range userSpecifiedSites {
+			if len(userSite) == 0 {
+				continue
 			}
+			for site, data := range allSiteData {
+				if strings.ToLower(userSite) == strings.ToLower(site) {
+					userSpecifiedSiteData[site] = data
+					break
+				}
+			}
+		}
+		if len(userSpecifiedSiteData) > 0 {
+			allSiteData = userSpecifiedSiteData
 		}
 	}
 
